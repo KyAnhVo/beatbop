@@ -21,11 +21,6 @@ public:
 public:
     /** Creates a Buffers object.
      *
-     * After creation, the VAO being binded is this object's,
-     * hence no necessary useBuffers() call or necessary binds
-     * before setting VAO-specific attributes (e.g. 
-     * glVertexAttribPtr, glDisableVertexAttribArray)
-     *
      * @param VBO the VBO id. If 0, create a new VBO and assign
      *       to this object.
      * @param EBO the EBO id. Same as above.

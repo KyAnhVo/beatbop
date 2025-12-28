@@ -21,7 +21,7 @@ public:
     unsigned int stride = BUFFER_STRIDE;
 
     // normals for VertexVBO ([xyz][rgb] per value)
-    float normals[(TRIANGLE_COUNT + 1) * 6] = {
+    float normals[(TRIANGLE_COUNT + 1) * BUFFER_STRIDE] = {
         0, 0, 0, 0, 0, 0,
     };
     

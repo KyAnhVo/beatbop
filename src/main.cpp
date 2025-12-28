@@ -2,14 +2,17 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
-#include <math.h>
 #include <iostream>
 
 #include "beatCircle.h"
 #include "shader.h"
 #include "buffers.h"
 
+
 float aspectRatio;
+
+double timer;
+float radius;
 
 void framebuffer_size_callback(GLFWwindow*, int, int);
 
@@ -66,6 +69,8 @@ int main(int argc, char** argv)
         circle.normals, 
         GL_STATIC_DRAW
     );
+
+    // buffer indices
     glBufferData(
         GL_ELEMENT_ARRAY_BUFFER,
         sizeof(circle.indices),
@@ -79,7 +84,7 @@ int main(int argc, char** argv)
         3, 
         GL_FLOAT, 
         GL_FALSE, 
-        buffer.stride * sizeof(float), 
+        buffer.stride, 
         (void*) 0
     );
 
@@ -89,21 +94,26 @@ int main(int argc, char** argv)
         3,
         GL_FLOAT,
         GL_FALSE,
-        buffer.stride *sizeof(float),
+        buffer.stride,
         (void*)(3 * sizeof(float))
     );
     
+    int radiusUniformLocation = glGetUniformLocation(program, "radius");
+    int aspectRatioUniformLocation = glGetUniformLocation(program, "aspectRatio");
+
+
     while(!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
         glBindVertexArray(buffer.VAO);
 
         // set aspectRatio uniform
-        int aspectRatioUniformLocation = glGetUniformLocation(program, "aspectRatio");
         glUniform1f(aspectRatioUniformLocation, aspectRatio);
 
         // set radius uniform
-        int radiusUniformLocation = glGetUniformLocation(program, "radius");
-        glUniform1f(radiusUniformLocation, 0.5f);
+        float r = 
+            static_cast<float>(glm::sin(glfwGetTime() * 5)) * 0.5f * (circle.maxRadius - circle.minRadius)
+            + (circle.maxRadius + circle.minRadius) / 2;
+        glUniform1f(radiusUniformLocation, r);
 
         glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3, GL_UNSIGNED_INT, 0);
 

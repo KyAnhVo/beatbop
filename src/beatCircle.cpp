@@ -10,7 +10,7 @@ BeatCircle::BeatCircle() {
         // 3 vertices: center, this, next
         this->indices[3 * i + 0] = 0;
         this->indices[3 * i + 1] = i + 1;
-        this->indices[3 * i + 2] = (i + 2 < TRIANGLE_COUNT) ? (i + 2) : 1;
+        this->indices[3 * i + 2] = i + 2 <= TRIANGLE_COUNT ? i + 2 : 1;
 
         // essentially (sin(theta), cos(theta))
         // plus 1 due to first one being center
@@ -18,12 +18,12 @@ BeatCircle::BeatCircle() {
         float r = 1.0f;
         float g = 1.0f;
         float b = 1.0f;
-        this->normals[this->stride * (i + 1) + 0] = glm::sin(theta);
-        this->normals[this->stride * (i + 1) + 1] = glm::cos(theta);
-        this->normals[this->stride * (i + 1) + 2] = 0.0f;
-        this->normals[this->stride * (i + 1) + 3] = r;
-        this->normals[this->stride * (i + 1) + 4] = g;
-        this->normals[this->stride * (i + 1) + 5] = b;
+        this->normals[BUFFER_STRIDE * (i + 1) + 0] = glm::sin(theta);
+        this->normals[BUFFER_STRIDE * (i + 1) + 1] = glm::cos(theta);
+        this->normals[BUFFER_STRIDE * (i + 1) + 2] = 0.0f;
+        this->normals[BUFFER_STRIDE * (i + 1) + 3] = r;
+        this->normals[BUFFER_STRIDE * (i + 1) + 4] = g;
+        this->normals[BUFFER_STRIDE * (i + 1) + 5] = b;
     }
 }
 
