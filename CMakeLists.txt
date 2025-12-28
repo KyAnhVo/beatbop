@@ -36,8 +36,8 @@ endif()
 
 
 file(GLOB_RECURSE SOURCES
-    "${CMAKE_SOUCR_DIR}/dependencies/src/*.cpp"
-    "${CMAKE_SOUCR_DIR}/dependencies/src/*.c"
+    "${CMAKE_SOURCE_DIR}/dependencies/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/dependencies/src/*.c"
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/glad/src/*.c"
 )
@@ -47,7 +47,7 @@ add_executable(beatbop ${SOURCES})
 target_include_directories(beatbop PRIVATE
     "${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_SOURCE_DIR}/glad/include"
-    "${CMAKE_SOUCR_DIR}/dependencies/include"
+    "${CMAKE_SOURCE_DIR}/dependencies/include"
 )
 
 find_package(OpenGL REQUIRED)

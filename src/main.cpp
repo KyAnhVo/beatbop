@@ -8,7 +8,6 @@
 #include "shader.h"
 #include "buffers.h"
 
-
 float aspectRatio;
 
 double timer;
