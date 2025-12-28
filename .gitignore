@@ -1,0 +1,8 @@
+!.gitignore
+.cache/
+.cache/**
+build/
+build/**
+
+# macos
+.DS_Store
