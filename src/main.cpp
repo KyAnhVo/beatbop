@@ -1,12 +1,15 @@
+#include <atomic>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <thread>
 
 #include <iostream>
 
 #include "beatCircle.h"
 #include "shader.h"
 #include "buffers.h"
+#include "sound.h"
 
 float aspectRatio;
 
@@ -15,9 +18,13 @@ float radius;
 
 void framebuffer_size_callback(GLFWwindow*, int, int);
 
+void worker();
+
 int main(int argc, char** argv)
 {
     BeatCircle circle;
+    
+    std::thread soundThreat(worker);
 
     // version hinting
     glfwInit();
@@ -100,6 +107,8 @@ int main(int argc, char** argv)
     int radiusUniformLocation = glGetUniformLocation(program, "radius");
     int aspectRatioUniformLocation = glGetUniformLocation(program, "aspectRatio");
 
+    while (!Sound::globalSound.load(std::memory_order_relaxed)) ;
+    Sound * sound = Sound::globalSound.load(std::memory_order_relaxed);
 
     while(!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
@@ -109,9 +118,8 @@ int main(int argc, char** argv)
         glUniform1f(aspectRatioUniformLocation, aspectRatio);
 
         // set radius uniform
-        float r = 
-            static_cast<float>(glm::sin(glfwGetTime() * 5)) * 0.5f * (circle.maxRadius - circle.minRadius)
-            + (circle.maxRadius + circle.minRadius) / 2;
+        float env = sound->env.load(std::memory_order_relaxed);
+        float r = circle.calculateRadius(env);
         glUniform1f(radiusUniformLocation, r);
 
         glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3, GL_UNSIGNED_INT, 0);
@@ -130,3 +138,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     aspectRatio = float(width) / height;
 }
 
+void worker() {
+    Sound::instance();
+}
