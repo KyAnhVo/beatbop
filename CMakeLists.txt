@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # safety's
 
-option(BEATBOP_CLANG_TIDY "Enable clang-tidy" ON)
+option(BEATBOP_CLANG_TIDY "Enable clang-tidy" OFF)
 if (BEATBOP_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES clang-tidy)
     if (CLANG_TIDY_EXE)

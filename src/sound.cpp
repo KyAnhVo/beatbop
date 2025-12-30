@@ -1,8 +1,10 @@
 #include "sound.h"
 #include <atomic>
+#include <stdatomic.h>
 #include <stdexcept>
 #include <thread>
 #include <cmath>
+#include <iostream>
 
 // must do this once...
 #define ever ;;
@@ -14,17 +16,50 @@ std::atomic<Sound*> Sound::globalSound = nullptr;
 Sound::Sound() {
     Sound::globalSound.store(this, std::memory_order_relaxed);
     env = 0;
+    ma_result r;
     
-    ma_device_config config = ma_device_config_init(ma_device_type_capture);
-    config.capture.format   = ma_format_f32;
-    config.capture.channels = CHANNEL_COUNT;
-    config.sampleRate       = SAMPLE_RATE;
-    config.dataCallback = miniaudioCallback;
 
-    ma_result r = ma_device_init(NULL, &config, &device);
+
+    // set context
+    ma_context context;
+    r = ma_context_init(
+        nullptr,   // backends = NULL → let miniaudio choose (ALSA/PulseAudio/PipeWire/etc.)
+        0,         // backendCount
+        nullptr,   // optional config
+        &context
+    );
+
+    if (r != MA_SUCCESS) {
+        throw std::runtime_error("ma_context_init failed");
+    }
+
+    ma_device_info* playbackInfos = nullptr;
+    ma_device_info* captureInfos = nullptr;
+    ma_uint32 playbackCount = 0;
+    ma_uint32 captureCount = 0;
+
+    ma_context_get_devices(
+        &context,
+        &playbackInfos, &playbackCount,
+        &captureInfos, &captureCount
+    );
+
+    // set config
+    ma_device_config config     = ma_device_config_init(ma_device_type_capture);
+    config.capture.format       = ma_format_f32;
+    config.capture.channels     = CHANNEL_COUNT;
+    config.capture.pDeviceID    = &(captureInfos[1].id);
+    config.sampleRate           = SAMPLE_RATE;
+    config.dataCallback         = miniaudioCallback;
+    
+
+    r = ma_device_init(&context, &config, &device);
     if (r != MA_SUCCESS) {
         throw std::runtime_error("initiate device unsuccessful");
     }
+    std::cout << "format: " << device.capture.format << std::endl
+        << "format f32: " << ma_format_f32 << std::endl;
+    ma_device_start(&device);
     processSound();
 }
 
@@ -34,11 +69,18 @@ Sound& Sound::instance() {
 }
 
 void Sound::processSound() {
+    static int processCount = 0;
     size_t head, prevHead = 0, minStart;
     float env = this->env.load(std::memory_order_acquire);
 
     // sorry i wanna do this one time
     for (ever) {
+        if (processCount % 100 == 0) {
+            std::cout << "env: " << env 
+                << ", Sound::env: " << this->env.load(std::memory_order_relaxed) << std::endl;
+        processCount++;
+
+        }
         head = buffer.head.load(std::memory_order_relaxed);
         if (head == prevHead) {
             std::this_thread::sleep_for(std::chrono::microseconds(1));
@@ -89,6 +131,7 @@ void Sound::processSound() {
         // alter head for next lookup, env for visualizer read
         buffer.head.store(head, std::memory_order_relaxed);
         this->env.store(env, std::memory_order_release);
+        prevHead = head;
     }
 }
 
@@ -97,6 +140,8 @@ float Sound::sampleToMagnitude(float sample) {
 }
 
 float Sound::calculateEnv(float env, float sample) {
+    // std::cout << env << ", " << sample;
+
     float m = sampleToMagnitude(sample);
 
     // attack-release smoothing
@@ -104,7 +149,10 @@ float Sound::calculateEnv(float env, float sample) {
     T = (m > env) ? T_ATTACK : T_RELEASE;
     coef = 1 - std::expf(-1 / (SAMPLE_RATE * T));
     
-    return env + coef * (m - env);
+    
+    env = env + coef * (m - env);
+    // std::cout << " = " << env << std::endl;
+    return env;
 }
 
 /****************************** AUDIO CALLBACK ******************************/
@@ -119,8 +167,12 @@ void miniaudioCallback(
     const void * input,
     ma_uint32 frameCount
 ) {
+    static int callCount = 0;
     // shouldnt happen, but we want stuff to be initiated
-    if (!Sound::globalSound) return;
+    if (Sound::globalSound.load(std::memory_order_relaxed) == nullptr)
+        return;
+
+    float sum = 0;
 
     Sound* sound = Sound::globalSound.load(std::memory_order_relaxed);
     size_t head = sound->buffer.head.load(std::memory_order_relaxed);
@@ -128,8 +180,14 @@ void miniaudioCallback(
     for (int i = 0; i < frameCount; i++) {
         sound->buffer.buffer[head] = in[i];
         head = (head + 1) % RING_BUFFER_SIZE;
+        sum += in[i] * in[i];
     }
     sound->buffer.head.store(head, std::memory_order_relaxed);
+
+    if (callCount++ % 100 == 0) {  // Print every 100th callback
+        float * in = (float*) input;
+        std::cout << "Samples sqrd mean avr: " << std::sqrtf(sum / frameCount) << std::endl;
+    }
 }
 
 
