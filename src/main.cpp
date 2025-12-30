@@ -19,7 +19,7 @@
 #define IS_DEBUG  true
 
 float aspectRatio;
-float gamma;
+float gain;
 bool minusNotPressed = true;
 bool plusNotPressed = true;
 
@@ -117,7 +117,7 @@ int main(int argc, char** argv)
     while (!Sound::globalSound.load(std::memory_order_relaxed)) ;
     Sound * sound = Sound::globalSound.load(std::memory_order_relaxed);
 
-    gamma = 128;
+    gain = 128;
     glfwSetKeyCallback(window, key_callback);
 
     while(!glfwWindowShouldClose(window)) {
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
         glUniform1f(aspectRatioUniformLocation, aspectRatio);
 
         // set radius uniform
-        float env = sound->env.load(std::memory_order_relaxed) * gamma;
+        float env = sound->env.load(std::memory_order_relaxed) * gain;
         float r = circle.calculateRadius(env);
         glUniform1f(radiusUniformLocation, r);
 
@@ -158,10 +158,10 @@ void worker() {
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_EQUAL && action == GLFW_PRESS) {
-        gamma = std::min(GAMMA_MAX, gamma * 2);
+        gain = std::min(GAMMA_MAX, gain * 2);
     }
     if (key == GLFW_KEY_MINUS && action == GLFW_PRESS) {
-        gamma = std::max(GAMMA_MIN, gamma / 2);
+        gain = std::max(GAMMA_MIN, gain / 2);
     }
 }
 
