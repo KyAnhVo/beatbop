@@ -6,7 +6,7 @@
 
 #define CHANNEL_COUNT       1
 #define SAMPLE_RATE         48000 // 48kHz, 48k samples per second
-#define TIME_PER_PROCESS    500   // ms, expected process every 500ms at worst
+#define TIME_PER_PROCESS    1 / 2   // s, expected process every 500ms at worst
 #define RING_BUFFER_SIZE    (4 * TIME_PER_PROCESS * SAMPLE_RATE * CHANNEL_COUNT)
 #define MAX_READ            (SAMPLE_RATE * TIME_PER_PROCESS * CHANNEL_COUNT)
 
@@ -23,14 +23,15 @@ private:
     ma_device device;
 
     // attack smoothing T value
-    const float T_ATTACK = 20; 
+    const float T_ATTACK = 0.05; 
 
     // release smoothing T value
-    const float T_RELEASE = 300;
+    const float T_RELEASE = 0.2;
 
 public:
     RingBuffer buffer;
     std::atomic<float> env;
+    std::atomic<bool> close = false;
 
 public:
     static std::atomic<Sound*> globalSound;

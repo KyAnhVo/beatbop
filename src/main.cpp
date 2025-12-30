@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <atomic>
+#include <cstdio>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -11,13 +13,18 @@
 #include "buffers.h"
 #include "sound.h"
 
-float aspectRatio;
+#define GAMMA_MAX 32768.0f
+#define GAMMA_MIN 8.0f
 
-double timer;
-float radius;
+#define IS_DEBUG  true
+
+float aspectRatio;
+float gamma;
+bool minusNotPressed = true;
+bool plusNotPressed = true;
 
 void framebuffer_size_callback(GLFWwindow*, int, int);
-
+void key_callback(GLFWwindow*, int, int, int, int);
 void worker();
 
 int main(int argc, char** argv)
@@ -34,7 +41,7 @@ int main(int argc, char** argv)
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
     // create window
-    GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(800, 600, "Beatbop 0.0.1", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -110,7 +117,11 @@ int main(int argc, char** argv)
     while (!Sound::globalSound.load(std::memory_order_relaxed)) ;
     Sound * sound = Sound::globalSound.load(std::memory_order_relaxed);
 
+    gamma = 128;
+    glfwSetKeyCallback(window, key_callback);
+
     while(!glfwWindowShouldClose(window)) {
+
         glClear(GL_COLOR_BUFFER_BIT);
         glBindVertexArray(buffer.VAO);
 
@@ -118,7 +129,7 @@ int main(int argc, char** argv)
         glUniform1f(aspectRatioUniformLocation, aspectRatio);
 
         // set radius uniform
-        float env = sound->env.load(std::memory_order_relaxed);
+        float env = sound->env.load(std::memory_order_relaxed) * gamma;
         float r = circle.calculateRadius(env);
         glUniform1f(radiusUniformLocation, r);
 
@@ -129,6 +140,9 @@ int main(int argc, char** argv)
     }
 
     // done
+
+    sound->close.store(true, std::memory_order_relaxed);
+    soundThreat.join();
     glfwTerminate();
     return 0;
 }
@@ -141,3 +155,13 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 void worker() {
     Sound::instance();
 }
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_EQUAL && action == GLFW_PRESS) {
+        gamma = std::min(GAMMA_MAX, gamma * 2);
+    }
+    if (key == GLFW_KEY_MINUS && action == GLFW_PRESS) {
+        gamma = std::max(GAMMA_MIN, gamma / 2);
+    }
+}
+
